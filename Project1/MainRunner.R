@@ -13,30 +13,38 @@ LoadFile <- function( filename )
     return( read.csv( filename ) )
 }
 
-MeanLogisticLoss <- function( predictedVals, actualVals )
+MeanLogisticLoss <- function( predictedVals, actualVals, baselineVal )
 {
-    outputVector <- rep( 0, ncol(predictedVals) )
+    LogLoss <- rep( 0.0, nrow(predictedVals) )
+
+    BaselineLoss <- rep( 0.0, nrow(predictedVals) )
 
     iterations <- 1:nrow(predictedVals)
 
-    for( iteration in 1:ncol( predictedVals ) )
+    for( iteration in 1:nrow( predictedVals ) )
     {
         output <- 0
 
-        for( input in 1:nrow( predictedVals ) )
+        baselineOut <- 0
+
+        for( input in 1:ncol( predictedVals ) )
         {
             actual <- actualVals[input]
 
-            predicted <- predictedVals[ input, iteration ]
+            predicted <- predictedVals[ iteration, input ]
 
             output <- output + ( -actual*log( predicted ) + ( 1 - actual )*log( 1-predicted ) )
+
+            baselineOut <- baselineOut + ( -actual*log( baselineVal ) + ( 1 - actual )*log( 1-baselineVal ) )
         }
 
         #gets the mean
-        outputVector[ iteration ] <- output/nrow(predictedVals)
+        LogLoss[ iteration ] <- output/nrow(predictedVals)
+
+        BaselineLoss[ iteration ] <- baselineOut/nrow(predictedVals)
     }
 
-    return( data.frame( iterations, outputVector ) )
+    return( data.frame( iterations, LogLoss, BaselineLoss ) )
 }
 
 
@@ -108,11 +116,15 @@ Hearts <- function()
 
     sigmoided <- Sigmoid(valuePerIteration)
 
-    MeanLossPerIter <- MeanLogisticLoss( sigmoided, outputs )
+    MeanLossPerIter <- MeanLogisticLoss( sigmoided, outputs, baselineVal )
 
-    HeartGraph <- ggplot(MeanLossPerIter, aes(x=iterations, y=outputVector) )
+    BaselineLoss <- MeanLogisticLoss()
+
+    HeartGraph <- ggplot(MeanLossPerIter, aes(x=iterations) ) +
+        geom_line(aes(y = LogLoss), color = "Red") + geom_line(aes(y = BaselineLoss) )
 
 
+    #TODO: This can be way more reusable, and probably a lot less messy if i didnt suck
 
 }
 
