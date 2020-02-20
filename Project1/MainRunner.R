@@ -118,8 +118,6 @@ Hearts <- function()
 
     MeanLossPerIter <- MeanLogisticLoss( sigmoided, outputs, baselineVal )
 
-    BaselineLoss <- MeanLogisticLoss()
-
     HeartGraph <- ggplot(MeanLossPerIter, aes(x=iterations) ) +
         geom_line(aes(y = LogLoss), color = "Red") + geom_line(aes(y = BaselineLoss) )
 
