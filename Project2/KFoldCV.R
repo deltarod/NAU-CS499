@@ -12,21 +12,63 @@ KFoldCV <- function( X_mat, y_vec, ComputePredictions, fold_vec )
         return()
     }
 
-    error_vec <- rep(0.0, length(fold_vec))
+    #unique fold vectors
+    uniqueFold <- unique(fold_vec)
 
-    for( k in fold_vec )
+    error_vec <- rep(0.0, length(uniqueFold))
+
+    for( k in uniqueFold )
     {
-        X_new
+        isValidate <- fold_vec == k
 
-        y_new
+        isTrain <- !isValidate
 
-        pred_new <- ComputePredictions(X_train, y_train, X_new)
+        X_new <- X_mat[isValidate,]
+
+        y_new <- y_vec[isValidate]
+
+        X_train <- X_mat[isTrain,]
+
+        y_train <- y_vec[isTrain]
+
+        pred_new <- ComputePredictions( X_train, y_train, X_new )
+
+        error_vec[ k ] <- MeanZeroOneLoss( pred_new[1], y_new )
     }
 
-    return(error_vec)
+    return( error_vec )
 }
 
-PredictionWrapper <- function( X_train, y_train, X_new )
-{
 
+NearestNeighborCV <- function( X_mat, y_vec, X_new, num_folds = 5, max_neighbors = 20 )
+    {
+    #generate fold vector
+    validation_fold_vec <- sample( rep( 1:num_folds, l=nrow( X_mat ) ) )
+
+    #create matrix for storing error
+    error_mat <- matrix(0.0, num_folds, max_neighbors )
+
+    #calculate most optimal neighbor for 1 - max_neighbors
+    for( num_neighbors in 1:max_neighbors )
+    {
+        knnWrap <- function( X_mat, y_vec, X_new )class::knn( X_mat, X_new, y_vec, k=num_neighbors )
+
+        error_mat[,num_neighbors] <- KFoldCV( X_mat, y_vec, knnWrap, validation_fold_vec )
+    }
+
+    #calculate mean error
+    mean_error_vec <- colMeans( error_mat )
+
+    #get index of minimum error
+    best_neighbors <- which.min( mean_error_vec ) + 1
+
+    #calculate prediction for best number of neighbors
+    predictions <- class::knn( X_mat, X_new, y_vec, k = best_neighbors )
+
+    c( predictions, mean_error_vec, error_mat )
+}
+
+MeanZeroOneLoss <- function( predicted, actual )
+{
+    return( 1 - mean(predicted == actual) )
 }

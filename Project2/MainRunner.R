@@ -37,5 +37,15 @@ numFolds <- 10
 
 fold_vec <- sample( rep( 1:numFolds, l=nrow( data.scaled ) ) )
 
-output <- KFoldCV( data.scaled, outputs, PredictionWrapper(), fold_vec )
+output <- KFoldCV( data.scaled, outputs, NearestNeighborCV, fold_vec )
+
+print( output )
+
+#test <- NearestNeighborCV( data.scaled, outputs, 1)
+
+
+
+
+
+
 
