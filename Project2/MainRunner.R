@@ -30,14 +30,15 @@ data.scaled <- scale( data )
 
 singleOutput <- NearestNeighborCV( data.scaled, outputs )
 
+graphData <- GenerateMeanSD( singleOutput )
+
 #line graph for each fold
 singleOutputGraph <- ggplot()+
     geom_line(aes(
         neighbors, percent.error, color=set, group=paste(set, fold)),
-              data=singleOutput)
+              data=singleOutput)+
+    geom_line(aes(neighbors, mean.percent, group=paste(set)), color="black", data=graphData)
 
-
-graphData <- GenerateMeanSD( singleOutput )
 
 min.dt <- graphData[set=="validation"][which.min(mean.percent)]
 
@@ -73,6 +74,6 @@ for( algorithm in c("baseline", "1-NN", "NNCV"))
 }
 
 #dot plot
-ggplot()+
+dotPlot <- ggplot()+
     geom_point(aes(accuracy.percent,algorithm),
     data=testOutput)

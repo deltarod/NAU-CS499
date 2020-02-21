@@ -105,13 +105,11 @@ RunAlgorithm <- function( algorithm, folds, data, outputs )
 
         accuracy.percent <- output[output$set=="validation"]
 
-        algOutput <- data.table(fold=unique(output$fold), accuracy.percent=accuracy.percent[,percent.error])
+        algOutput <- data.table(fold=unique(output$fold), accuracy.percent=100-accuracy.percent[,percent.error])
     }
     else if(algorithm == "NNCV" )
     {
         algOutput <- NearestNeighborCV(data, outputs, num_folds = folds )
-
-        print(algOutput)
 
         graphData <- GenerateMeanSD( algOutput )
 
@@ -119,9 +117,7 @@ RunAlgorithm <- function( algorithm, folds, data, outputs )
 
         numNeighbors <- min$neighbors
 
-        algOutput <- data.table(fold=algOutput[neighbors==numNeighbors&set=="validation",fold], accuracy.percent=algOutput[neighbors==numNeighbors&set=="validation",percent.error] )
-
-        print(algOutput)
+        algOutput <- data.table(fold=algOutput[neighbors==numNeighbors&set=="validation",fold], accuracy.percent=100-algOutput[neighbors==numNeighbors&set=="validation",percent.error] )
     }
     else
     {
