@@ -67,7 +67,7 @@ NearestNeighborCV <- function( X_mat, y_vec, num_folds = 5, max_neighbors = 20 )
 
     #calculate mean error
     mean_error.dt <- results.dt[, .(percent.error=100*mean(is.error)
-    ), by=list(set,neighbors)]
+    ), by=list(set,neighbors,fold)]
 
     return(mean_error.dt)
 
@@ -85,23 +85,70 @@ MeanZeroOneLoss <- function( predicted, actual )
     return( 1 - mean(predicted == actual ) )
 }
 
-GenerateError <- function( results )
+GenerateMeanSD <- function( results )
 {
-    meanVals <- colMeans( results )
-
-    sd <- ColSds( results )
-
-    data.table( percent.error = meanVals*100, sd = sd, neighbors=1:ncol(results), test=results )
+    meanSD.dt <- results[, .(
+    mean.percent=mean(percent.error),
+    sd=sd(percent.error)
+    ), by=list(set,neighbors)]
 }
 
-ColSds <- function( matrix )
+RunAlgorithm <- function( algorithm, folds, data, outputs )
 {
-    result <- rep( 0.0, ncol( matrix ) )
-
-    for( col in 1:ncol( matrix ) )
+    if(algorithm == "baseline" )
     {
-        result[ col ] <- sd( matrix[ ,col ] )
+        algOutput <- Baseline( folds, data, outputs )
+    }
+    else if(algorithm == "1-NN" )
+    {
+        output <- NearestNeighborCV( data, outputs, max_neighbors = 1, num_folds = folds )
+
+        accuracy.percent <- output[output$set=="validation"]
+
+        algOutput <- data.table(fold=unique(output$fold), accuracy.percent=accuracy.percent[,percent.error])
+    }
+    else if(algorithm == "NNCV" )
+    {
+        algOutput <- NearestNeighborCV(data, outputs, num_folds = folds )
+
+        print(algOutput)
+
+        graphData <- GenerateMeanSD( algOutput )
+
+        min <- graphData[set=="validation"][which.min(mean.percent)]
+
+        numNeighbors <- min$neighbors
+
+        algOutput <- data.table(fold=algOutput[neighbors==numNeighbors&set=="validation",fold], accuracy.percent=algOutput[neighbors==numNeighbors&set=="validation",percent.error] )
+
+        print(algOutput)
+    }
+    else
+    {
+        print("invalid Algorithm")
     }
 
-    return( result )
+    return(algOutput)
+}
+
+Baseline <- function( folds, data, outputs )
+{
+    counts <- table( outputs )
+
+    baselineVal <- which.max(counts)
+
+    fold_vec <- sample( rep( 1:folds, l=nrow( data ) ) )
+
+    outputTable <- data.table()
+
+    for( fold in unique(fold_vec) )
+    {
+        isTrain <- fold_vec != fold
+
+        foldOut <- outputs[isTrain]
+
+        outputTable <- rbind(outputTable, cbind(fold, accuracy.percent=mean(foldOut == baselineVal)*100 ) )
+    }
+
+    return(outputTable)
 }

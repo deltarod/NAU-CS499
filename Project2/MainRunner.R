@@ -18,8 +18,7 @@ if(!file.exists("spam.data") ){
     download.file("https://web.stanford.edu/~hastie/ElemStatLearn/datasets/spam.data", "spam.data")
 }
 
-#temporarily shortened data for testing speed purposes
-spam.dt <- data.table::fread("spam.data")[sample(.N, 100)]
+spam.dt <- data.table::fread("spam.data")
 
 #-ncol(spam.dt) because the output is on the last col
 data <- as.matrix( spam.dt[ , -ncol( spam.dt ), with=FALSE ] )
@@ -31,17 +30,49 @@ data.scaled <- scale( data )
 
 singleOutput <- NearestNeighborCV( data.scaled, outputs )
 
-resultsSingle <- do.call( rbind, singleOutput[3] )
-
-graphData <- GenerateError( resultsSingle )
-
-#TODO: Figure out how the heck to graph this
-
-#TODO: Add individual folds to graph, make graph less fucky
-
-test1 <- ggplot()+
-        geom_ribbon(aes(
-        neighbors, ymin=percent.error-sd, ymax=percent.error+sd
-        ), alpha=0.5, data=graphData )
+#line graph for each fold
+singleOutputGraph <- ggplot()+
+    geom_line(aes(
+        neighbors, percent.error, color=set, group=paste(set, fold)),
+              data=singleOutput)
 
 
+graphData <- GenerateMeanSD( singleOutput )
+
+min.dt <- graphData[set=="validation"][which.min(mean.percent)]
+
+#ribbon graph
+gg <- ggplot()+
+    geom_ribbon(aes(
+        neighbors, ymin=mean.percent-sd, ymax=mean.percent+sd, fill=set),
+                alpha=0.5,
+                data=graphData)+
+    geom_line(aes(
+        neighbors, mean.percent, color=set),
+              data=graphData)+
+    geom_point(aes(
+        neighbors, mean.percent, color=set),
+               data=min.dt)+
+    coord_cartesian(xlim=c(0, 25))
+
+algorithmRun <- data.table()
+
+test_fold_vec <- sample( rep( 1:4, l=nrow( data.scaled ) ) )
+
+count <- table( test_fold_vec )
+
+testOutput <- data.table()
+
+for( algorithm in c("baseline", "1-NN", "NNCV"))
+{
+    numFolds <- 4
+
+    algOutput <- RunAlgorithm( algorithm, numFolds, data.scaled, outputs )
+
+    testOutput <- rbind(testOutput, cbind(algOutput, algorithm) )
+}
+
+#dot plot
+ggplot()+
+    geom_point(aes(accuracy.percent,algorithm),
+    data=testOutput)
