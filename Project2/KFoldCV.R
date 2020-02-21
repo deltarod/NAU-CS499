@@ -39,7 +39,7 @@ KFoldCV <- function( X_mat, y_vec, ComputePredictions, fold_vec )
     return( error_vec )
 }
 
-NearestNeighborCV <- function( X_mat, y_vec, X_new = X_mat, num_folds = 5, max_neighbors = 20 )
+NearestNeighborCV <- function( X_mat, y_vec, X_new, num_folds = 5, max_neighbors = 20 )
 {
     #generate fold vector
     validation_fold_vec <- sample( rep( 1:num_folds, l=nrow( X_mat ) ) )
@@ -69,5 +69,26 @@ NearestNeighborCV <- function( X_mat, y_vec, X_new = X_mat, num_folds = 5, max_n
 
 MeanZeroOneLoss <- function( predicted, actual )
 {
-    return( 1 - mean(predicted == actual) )
+    return( 1 - mean(predicted == actual ) )
+}
+
+GenerateError <- function( results )
+{
+    meanVals <- colMeans( results )
+
+    sd <- ColSds( results )
+
+    data.table( percent.error = meanVals*100, sd = sd, neighbors=1:ncol(results), test=results )
+}
+
+ColSds <- function( matrix )
+{
+    result <- rep( 0.0, ncol( matrix ) )
+
+    for( col in 1:ncol( matrix ) )
+    {
+        result[ col ] <- sd( matrix[ ,col ] )
+    }
+
+    return( result )
 }

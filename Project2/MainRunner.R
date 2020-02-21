@@ -28,18 +28,21 @@ outputs <- spam.dt[[ncol( spam.dt )]]
 
 data.scaled <- scale( data )
 
-singleOutput <- NearestNeighborCV( data.scaled, outputs, data.scaled )
+oneObserve <- data.scaled[1,]
+
+singleOutput <- NearestNeighborCV( data.scaled, outputs, data.scaled[1,] )
+
+resultsSingle <- do.call( rbind, singleOutput[3] )
+
+graphData <- GenerateError( resultsSingle )
 
 #TODO: Figure out how the heck to graph this
 
-"+
-    geom_line(aes(
-        neighbors, mean.percent, color=set),
-              data=graphData.dt)+
-    geom_point(aes(
-        neighbors, mean.percent, color=set),
-               data=graphData.dt)+
-    coord_cartesian(xlim=c(0, 25))"
+#TODO: Add individual folds to graph, make graph less fucky
 
+test1 <- ggplot()+
+        geom_line(aes(
+        neighbors, test
+        ), data=graphData )
 
 
