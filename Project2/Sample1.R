@@ -47,7 +47,7 @@ for(validation.fold in 1:n.folds){
 }
 err.dt <- do.call(rbind, err.dt.list)
 
-ggplot()+
+other <- ggplot()+
     geom_line(aes(
         neighbors, percent.error, color=set, group=paste(set, validation.fold)),
               data=err.dt)
@@ -69,4 +69,3 @@ gg <- ggplot()+
         neighbors, mean.percent, color=set),
                data=min.dt)+
     coord_cartesian(xlim=c(0, 25))
-directlabels::direct.label(gg, "last.polygons")

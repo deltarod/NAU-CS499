@@ -39,16 +39,15 @@ KFoldCV <- function( X_mat, y_vec, ComputePredictions, fold_vec )
     return( error_vec )
 }
 
-
-NearestNeighborCV <- function( X_mat, y_vec, X_new, num_folds = 5, max_neighbors = 20 )
-    {
+NearestNeighborCV <- function( X_mat, y_vec, X_new = X_mat, num_folds = 5, max_neighbors = 20 )
+{
     #generate fold vector
     validation_fold_vec <- sample( rep( 1:num_folds, l=nrow( X_mat ) ) )
 
     #create matrix for storing error
     error_mat <- matrix(0.0, num_folds, max_neighbors )
 
-    #calculate most optimal neighbor for 1 - max_neighbors
+    #calculate most optimal neighbor for 1 through max_neighbors
     for( num_neighbors in 1:max_neighbors )
     {
         knnWrap <- function( X_mat, y_vec, X_new )class::knn( X_mat, X_new, y_vec, k=num_neighbors )
@@ -65,7 +64,7 @@ NearestNeighborCV <- function( X_mat, y_vec, X_new, num_folds = 5, max_neighbors
     #calculate prediction for best number of neighbors
     predictions <- class::knn( X_mat, X_new, y_vec, k = best_neighbors )
 
-    c( predictions, mean_error_vec, error_mat )
+    list( predictions, mean_error_vec, error_mat )
 }
 
 MeanZeroOneLoss <- function( predicted, actual )

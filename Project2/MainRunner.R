@@ -20,8 +20,6 @@ if(!file.exists( "spam.data" ) ){
 
 spam.dt <- data.table::fread( "spam.data" )
 
-observation_size <- nrow( spam.dt )
-
 #-ncol(spam.dt) because the output is on the last col
 data <- as.matrix( spam.dt[ , -ncol( spam.dt ), with=FALSE ] )
 
@@ -30,22 +28,18 @@ outputs <- spam.dt[[ncol( spam.dt )]]
 
 data.scaled <- scale( data )
 
-#reproducable tests
-set.seed(1 )
+singleOutput <- NearestNeighborCV( data.scaled, outputs, data.scaled )
 
-numFolds <- 10
+#TODO: Figure out how the heck to graph this
 
-fold_vec <- sample( rep( 1:numFolds, l=nrow( data.scaled ) ) )
-
-output <- KFoldCV( data.scaled, outputs, NearestNeighborCV, fold_vec )
-
-print( output )
-
-#test <- NearestNeighborCV( data.scaled, outputs, 1)
-
-
-
-
+"+
+    geom_line(aes(
+        neighbors, mean.percent, color=set),
+              data=graphData.dt)+
+    geom_point(aes(
+        neighbors, mean.percent, color=set),
+               data=graphData.dt)+
+    coord_cartesian(xlim=c(0, 25))"
 
 
 

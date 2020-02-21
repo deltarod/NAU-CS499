@@ -8,9 +8,11 @@ if(!require("data.table")){
     install.packages("data.table")
 }
 
+
 ## attach all functions provided by these packages.
 library(data.table)
 library(ggplot2)
+source("Project2/KFoldCV.R")
 
 ## download spam data set to local directory, if it is not present.
 if(!file.exists("spam.data")){
@@ -27,7 +29,7 @@ X.sc <- scale(X.raw) #scaled X/feature/input matrix.
 
 ## compute and visualize validation error as a function of number of
 ## neighbors.
-result <- NearestNeighborsCV(X.sc, y.vec)
+result <- NearestNeighborCV(X.sc, y.vec)
 ggplot()+
     geom_line(aes(
         neighbors, error.percent, group=validation.fold),
