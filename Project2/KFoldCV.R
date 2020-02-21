@@ -15,7 +15,7 @@ KFoldCV <- function( X_mat, y_vec, ComputePredictions, fold_vec )
     #unique fold vectors
     uniqueFold <- unique(fold_vec)
 
-    error_vec <- rep(0.0, length(uniqueFold))
+    output.dt <- data.table()
 
     for( k in uniqueFold )
     {
@@ -23,40 +23,53 @@ KFoldCV <- function( X_mat, y_vec, ComputePredictions, fold_vec )
 
         isTrain <- !isValidate
 
-        X_new <- X_mat[isValidate,]
-
-        y_new <- y_vec[isValidate]
-
         X_train <- X_mat[isTrain,]
 
-        y_train <- y_vec[isTrain]
+        y_training <- y_vec[isTrain]
 
-        pred_new <- ComputePredictions( X_train, y_train, X_new )
+        pred_new <- ComputePredictions( X_train, y_training, X_mat )
 
-        error_vec[ k ] <- MeanZeroOneLoss( pred_new[1], y_new )
+        #instead of returning a vector of error_vec's I'm giving myself more information for later
+        #contains data for every test in this fold for the specific neighbor
+        fold.dt <- data.table(set=ifelse(isTrain, "train", "validation"),
+        pred_new,
+        fold=k,
+        is.error= pred_new != y_vec)
+
+        output.dt <- rbind(output.dt, fold.dt)
     }
 
-    return( error_vec )
+    return( output.dt )
 }
 
-NearestNeighborCV <- function( X_mat, y_vec, X_new, num_folds = 5, max_neighbors = 20 )
+NearestNeighborCV <- function( X_mat, y_vec, num_folds = 5, max_neighbors = 20 )
 {
     #generate fold vector
     validation_fold_vec <- sample( rep( 1:num_folds, l=nrow( X_mat ) ) )
 
-    #create matrix for storing error
-    error_mat <- matrix(0.0, num_folds, max_neighbors )
+    results.dt <- data.table()
 
     #calculate most optimal neighbor for 1 through max_neighbors
     for( num_neighbors in 1:max_neighbors )
     {
-        knnWrap <- function( X_mat, y_vec, X_new )class::knn( X_mat, X_new, y_vec, k=num_neighbors )
+        knnWrap <- function( X_train, y_train, X_new )
+        {
+            #I am getting a weird bug here where y_train just goes missing, I don't understand..
 
-        error_mat[,num_neighbors] <- KFoldCV( X_mat, y_vec, knnWrap, validation_fold_vec )
+            class::knn( X_train, X_new, y_train, k=num_neighbors )
+        }
+
+        output.dt <- KFoldCV( X_mat, y_vec, knnWrap, validation_fold_vec )
+
+        #appends the data from that specific num_neighbors to results
+        results.dt <- rbind(results.dt, cbind(output.dt, neighbors=num_neighbors ))
     }
 
     #calculate mean error
-    mean_error_vec <- colMeans( error_mat )
+    mean_error.dt <- results.dt[, .(percent.error=100*mean(is.error)
+    ), by=list(set,neighbors)]
+
+    return(mean_error.dt)
 
     #get index of minimum error
     best_neighbors <- which.min( mean_error_vec ) + 1

@@ -14,11 +14,12 @@ library( ggplot2 )
 source("Project2/KFoldCV.R")
 
 #acquire data
-if(!file.exists( "spam.data" ) ){
-    download.file( "https://web.stanford.edu/~hastie/ElemStatLearn/datasets/spam.data", "spam.data" )
+if(!file.exists("spam.data") ){
+    download.file("https://web.stanford.edu/~hastie/ElemStatLearn/datasets/spam.data", "spam.data")
 }
 
-spam.dt <- data.table::fread( "spam.data" )
+#temporarily shortened data for testing speed purposes
+spam.dt <- data.table::fread("spam.data")[sample(.N, 100)]
 
 #-ncol(spam.dt) because the output is on the last col
 data <- as.matrix( spam.dt[ , -ncol( spam.dt ), with=FALSE ] )
@@ -28,9 +29,7 @@ outputs <- spam.dt[[ncol( spam.dt )]]
 
 data.scaled <- scale( data )
 
-oneObserve <- data.scaled[1,]
-
-singleOutput <- NearestNeighborCV( data.scaled, outputs, data.scaled[1,] )
+singleOutput <- NearestNeighborCV( data.scaled, outputs )
 
 resultsSingle <- do.call( rbind, singleOutput[3] )
 
@@ -41,8 +40,8 @@ graphData <- GenerateError( resultsSingle )
 #TODO: Add individual folds to graph, make graph less fucky
 
 test1 <- ggplot()+
-        geom_line(aes(
-        neighbors, test
-        ), data=graphData )
+        geom_ribbon(aes(
+        neighbors, ymin=percent.error-sd, ymax=percent.error+sd
+        ), alpha=0.5, data=graphData )
 
 
