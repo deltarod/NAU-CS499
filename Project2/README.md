@@ -3,7 +3,7 @@
 This project is about implementation and usage of the KFold Cross Validation Algorithm in
  conjunction with the default KNearestNeighbor Algorithm.
  
-##Algorithm Code
+## Algorithm Code
 [Here is the code for the KFold Cross Validation Algorithm and some extra bits](https://github.com/deltarod/NAU-CS499/blob/master/Project2/KFoldCV.R)
  
 ## Requirements
