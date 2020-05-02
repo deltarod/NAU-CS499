@@ -3,15 +3,22 @@
 # Created by: Tristan Miller (tem83)
 # Created on: 5/1/2020
 
-RunAlgorithm <- function( x, y, image.x = 16, image.y = 16, num_folds = 5,
-                          epochs = 20, validation_split = 0.2)
+RunAlgorithms <- function( x, y, num_folds = 5, epochs = 20)
 {
     fold.id <- sample( rep( 1:num_folds, l=nrow(zip.x)))
 
-    output.dt <- data.table()
+    baseline.dt <- data.table()
+
+    dense.dt <- data.table()
+
+    conv.dt <- data.table()
+
+    deep.dt <- data.table()
 
     for( current_fold in 1:num_folds )
     {
+        print(sprintf("Fold: %d", current_fold))
+
         #determine what is in this fold
         is.fold <- fold.id == current_fold
 
@@ -19,33 +26,197 @@ RunAlgorithm <- function( x, y, image.x = 16, image.y = 16, num_folds = 5,
 
         y.fold <- y[is.fold]
 
-        #split into train and test
-        fold.isTrain <- sample( rep( c( TRUE, FALSE ),
-                                     prob = c( .8, .2 ),
-                                     replace = TRUE,
-                                     size=nrow( x.fold ) ) )
+        is.train <- sample( x = rep( c( TRUE, FALSE ) ), prob = c( .8, .2 ), replace = TRUE, size=nrow( x.fold ) )
 
-        x_train <- x.fold[ fold.isTrain, ]
+        x.train <- x.fold[ is.train, ]
+        x.test <- x.fold[ !is.train, ]
 
-        y_train <- y.fold[ fold.isTrain ]
+        y.train <- y.fold[ is.train ]
+        y.test <- y.fold[ !is.train ]
 
-        x_test <- x.fold[ !fold.isTrain, ]
+        #convolutional NN run
+        conv.output <- setDT(RunConvolutionalModel( x.train, y.train, x.test, y.test, epochs )[2])
 
-        y_train <- y.fold [ fold.isTrain ]
+        conv.output[, fold := current_fold ]
+
+        conv.output[, alg := "conv"]
+
+        conv.dt <- rbind( conv.dt, conv.output )
+
+        #calculate dense rnn accuracy
+        dense.output <- setDT( RunDenseModel(x.train, y.train, x.test, y.test, epochs )[2])
+
+        dense.output[, fold := current_fold ]
+
+        dense.output[, alg := "dense"]
+
+        dense.dt <- rbind( dense.dt, dense.output )
+
+        #Deep Dense
+        deep.output <- setDT( RunDenseModel(x.train, y.train, x.test, y.test, epochs, c(784, 6272, 9216, 128) )[2])
+
+        deep.output[, fold := current_fold ]
+
+        deep.output[, alg := "deep"]
+
+        deep.dt <- rbind( deep.dt, deep.output )
+
+        #calculate baseline accuracy
+        baseline.output.dt <- data.table()
+
+        baseline.output.dt[, accuracy := BaselineAccuracy(y.test) ]
+
+        baseline.output.dt[, fold := current_fold ]
+
+        baseline.output.dt[, alg := "baseline"]
+
+        baseline.dt <- rbind( baseline.dt, baseline.output.dt)
     }
+
+    output.dt <- rbind( conv.dt, baseline.dt )
+
+    output.dt <- rbind( output.dt, dense.dt )
+
+    output.dt <- rbind( output.dt, deep.dt )
+
+    return(output.dt)
+}
+
+RunDenseModel <- function( x.train, y.train, x.test, y.test, epochs, layer.layout = c( 784, 270, 270, 128 ) )
+{
+    #change data types so program doesn't get mad anymore
+    x.train.convert <- array(
+        unlist(x.train[seq_len(nrow(x.train)),-1]),
+        c(nrow(x.train), 16, 16, 1))
+    y.train.convert <- to_categorical(y.train)
+
+    x.test.convert <- array(
+        unlist(x.test[seq_len(nrow(x.test)),-1]),
+        c(nrow(x.test), 16, 16, 1))
+    y.test.convert <- to_categorical(y.test)
+
+    model.first <- DenseModelGenerate(x.train.convert, layer.layout )
+
+    fit.first <- FitModel( model.first, x.train.convert, y.train.convert )
+
+    modelInfo.first <- do.call( data.table::data.table,fit.first$metrics )
+
+    modelInfo.first[, epoch := 1:epochs ]
+
+    best_epoch <- modelInfo.first[which.min(val_loss)]
+
+    train_epoch <- best_epoch[ 1, best_epoch$epoch ]
+
+    model.best <- DenseModelGenerate( x.train.convert, layer.layout )
+
+    FitModel( model.best, x.train.convert, y.train.convert, epochs = train_epoch, validation_split = 0.0 )
+
+    result <- EvaluateModel( model.best, x.test.convert, y.test.convert )
 
 }
 
-
-BaselineAccuracy <- function( y )
+DenseModelGenerate <- function( x.train, num_classes = 10, layers = c( 784, 270, 270, 128 ) )
 {
-    y.table <- table( y )
+    k_clear_session()
+
+    model <- keras_model_sequential() %>%
+        layer_flatten( input_shape = ncol(x.train) )
+
+    for( index in seq(layers) )
+    {
+        summary(model)
+
+        layer_dense(model, units = layers[index], activation = 'relu') #hidden layers
+    }
+    model %>% layer_dense(units = num_classes, activation = 'softmax') %>% #output layer
+    CompileModel()
+
+    return(model)
+}
+
+RunConvolutionalModel <- function( x.train, y.train, x.test, y.test, epochs )
+{
+    #change data types so program doesn't get mad anymore
+    x.train.convert <- array(
+        unlist(x.train[seq_len(nrow(x.train)),-1]),
+        c(nrow(x.train), 16, 16, 1))
+    y.train.convert <- to_categorical(y.train)
+
+    x.test.convert <- array(
+        unlist(x.test[seq_len(nrow(x.test)),-1]),
+        c(nrow(x.test), 16, 16, 1))
+    y.test.convert <- to_categorical(y.test)
+
+    model.first <- ConvolutionalModelGenerate()
+
+    fit.first <- FitModel( model.first, x.train.convert, y.train.convert )
+
+    modelInfo.first <- do.call( data.table::data.table,fit.first$metrics )
+
+    modelInfo.first[, epoch := 1:epochs ]
+
+    best_epoch <- modelInfo.first[which.min(val_loss)]
+
+    train_epoch <- best_epoch[ 1, best_epoch$epoch ]
+
+    model.best <- ConvolutionalModelGenerate()
+
+    FitModel( model.best, x.train.convert, y.train.convert, epochs = train_epoch, validation_split = 0.0 )
+
+    result <- EvaluateModel( model.best, x.test.convert, y.test.convert )
+}
+
+#generates a convolutionalModel
+ConvolutionalModelGenerate <- function( image.rows = 16, image.columns = 16, num_classes = 10 )
+{
+    k_clear_session()
+
+    model <- keras_model_sequential() %>%
+        layer_conv_2d( filters = 32, kernel_size = c( 3, 3 ), activation = 'relu',
+                       input_shape = c( image.rows, image.columns, 1 ) ) %>%
+        layer_conv_2d( filters = 64, kernel_size = c( 3, 3 ), activation = 'relu') %>%
+        layer_max_pooling_2d( pool_size = c(2,2) ) %>%
+        layer_dropout( rate = 0.25 ) %>%
+        layer_flatten() %>%
+        layer_dense( units = 128, activation = 'relu' ) %>%
+        layer_dropout( rate = 0.5 ) %>%
+        layer_dense( units = num_classes, activation = 'softmax' ) %>%
+        CompileModel()
+}
+
+
+FitModel <- function( model, x.train, y.train, epochs = 20, validation_split = 0.2,  batch_size = 128 )
+{
+    model %>%
+        fit( x.train, y.train,
+             batch_size = batch_size,
+             epochs = epochs,
+             validation_split = validation_split )
+}
+
+CompileModel <- function( model )
+{
+    model %>% compile(loss = loss_categorical_crossentropy,
+                      optimizer = optimizer_adadelta(),
+                      metrics = c('accuracy') )
+
+    return(model)
+}
+
+EvaluateModel <- function( model, x, y )
+{
+    return( evaluate( model, x, y ) )
+}
+
+BaselineAccuracy <- function( y.train )
+{
+    y.table <- table( y.train )
 
     mostCommonVal <- max(y.table)
 
     index <- 0
 
-    for( val in 1:length( y.table ) )
+    for( val in seq_along(y.table) )
     {
         if( mostCommonVal == y.table[val] )
         {
@@ -53,6 +224,6 @@ BaselineAccuracy <- function( y )
         }
     }
 
-    accuracy <- mean( y == index - 1 )
+    accuracy <- mean( y.train == index - 1 )
 
 }
