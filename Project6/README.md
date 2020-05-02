@@ -1,11 +1,10 @@
-# Demonstrating regularization/overfitting
-In this project, we will use regularization techniques to determine what to do in regards to training.
-We cannot use early stopping in this lab as that is what we have done in the past..
+# Convolutional Neural Networks
+In this project, we will use a convolutional neural network to learn how to determine a digit.
  
 ## Algorithm Code
-Each different regularization paramater can be found [here](https://github.com/deltarod/NAU-CS499/blob/master/Project5/MainRunner.R)
+The main runnner can be found here [here](https://github.com/deltarod/NAU-CS499/blob/master/Project6/MainRunner.R)
 
-The model definition can be found [here](https://github.com/deltarod/NAU-CS499/blob/master/Project5/Model.R)
+The meat can be found [here](https://github.com/deltarod/NAU-CS499/blob/master/Project6/Model.R)
  
 ## Requirements
 R installed
@@ -21,16 +20,6 @@ rerun the program once.
 
 ## Outputs
 
-![Hidden Units data graph](https://github.com/deltarod/NAU-CS499/blob/master/Project5/HiddenUnits.png?raw=true)
-
-![Hidden Layers data graph](https://github.com/deltarod/NAU-CS499/blob/master/Project5/HiddenLayers.png?raw=true)
-
-![L2 data graph](https://github.com/deltarod/NAU-CS499/blob/master/Project5/l2.png?raw=true)
-
-![Noise data graph](https://github.com/deltarod/NAU-CS499/blob/master/Project5/Noise.png?raw=true)
-
-![Drop Out data graph](https://github.com/deltarod/NAU-CS499/blob/master/Project5/DropOut.png?raw=true)
-
-![Test Accuracies](https://github.com/deltarod/NAU-CS499/blob/master/Project5/Accuracies.png?raw=true)
+![Accuracies](https://github.com/deltarod/NAU-CS499/blob/master/Project6/dotPlot.png?raw=true)
 
 
